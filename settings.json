@@ -1,0 +1,7 @@
+{
+    "Local": {
+        "filepath": "Datasets",
+        "filename": "vulnerabilities.csv",
+        "output": "vuln_cleaned.csv"
+    }
+}
