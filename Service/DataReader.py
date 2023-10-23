@@ -6,23 +6,21 @@ class DataReader():
         def __init__(self, spark_session):
             self.spark_session = spark_session
         
-        def read_data(self, path: str, file_name: str, output_dir: str):   
+        def read_data(self, path: str, file_name: str):   
           output_directory = path
           csv_file = os.path.join(output_directory, file_name)
 
           vmSchema = StructType([
-          StructField('id', StringType(), True),
-          StructField('descriptions', StringType(), True),
-          StructField('attackVector', StringType(), True),
-          StructField('vectorString', StringType(), True),
-          StructField('attackComplexity', StringType(), True),
-          StructField('confidentialityImpact', StringType(), True),
-          StructField('integrityImpact', StringType(), True),
-          StructField('availabilityImpact', StringType(), True),
-          StructField('baseScore', FloatType(), True),
-          StructField('baseSeverity', StringType(), True),
-          StructField('exploitabilityScore', FloatType(), True),
-          StructField('impactScore', FloatType(), True)
+          StructField('id', StringType(), False),
+          StructField('attackVector', StringType(), False),
+          StructField('attackComplexity', StringType(), False),
+          StructField('confidentialityImpact', StringType(), False),
+          StructField('integrityImpact', StringType(), False),
+          StructField('availabilityImpact', StringType(), False),
+          StructField('baseScore', FloatType(), False),
+          StructField('baseSeverity', StringType(), False),
+          StructField('exploitabilityScore', FloatType(), False),
+          StructField('impactScore', FloatType(), False)
           ])
 
           return csv_file, vmSchema

@@ -2,6 +2,7 @@
     "Local": {
         "filepath": "Datasets",
         "filename": "vulnerabilities.csv",
-        "output": "vm_cleaned.csv"
+        "output": "vm_cleaned.csv",
+        "input": "vm_cleaned.csv"
     }
 }
