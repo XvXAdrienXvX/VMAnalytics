@@ -5,7 +5,7 @@ from pyspark.mllib.stat import Statistics
 from pyspark.ml import Pipeline
 from pyspark.ml.stat import Correlation
 from pyspark.ml.feature import VectorAssembler
-from pyspark.sql.functions import udf, mode
+from pyspark.sql.functions import udf, mode, min, max
 from pyspark.ml.linalg import Vectors, DenseVector
 from pyspark.sql.types import DoubleType
 import plotly.graph_objs as go
@@ -186,3 +186,21 @@ class VMAnalyzer():
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
+
+        def find_range(self, df, columns):   
+            try:
+                
+                aggregation_exprs = []
+        
+                for col_name in columns:
+                    min_expr = min(df[col_name]).alias(f"min_{col_name}")
+                    max_expr = max(df[col_name]).alias(f"max_{col_name}")
+                    
+                    aggregation_exprs.extend([min_expr, max_expr])
+                
+                result_df = df.select(*aggregation_exprs)
+                
+                result_df.show()
+               
+            except Exception as e:
+                print(f"An error occurred while calculating range: {str(e)}")   
