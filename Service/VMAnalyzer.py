@@ -58,7 +58,7 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred while performing correlation analysis: {str(e)}")   
 
-        def show_correlation_matrix_heatmap(self, processed_df, column_display_info, width, height):   
+        def show_correlation_matrix_heatmap(self, processed_df, column_display_info, width, height, format = ""):   
             try:
                 columns = [info['column_name'] for info in column_display_info]
                 display_names = [info['display_name'] for info in column_display_info]
@@ -81,13 +81,13 @@ class VMAnalyzer():
                 fig.update_layout(width=width, height=height, title="Correlation Heatmap")
 
                 # Show the heatmap
-                fig.show()
+                fig.show(format)
 
             except Exception as e:
                     print(f"An error occurred rendering heat map: {str(e)}")  
                      
 
-        def show_correlation_scatter_plot(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title):   
+        def show_correlation_scatter_plot(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title, format = ""):   
             try:
 
                 fig = px.scatter(processed_df.toPandas(), x=column_1, y=column_2,
@@ -95,12 +95,12 @@ class VMAnalyzer():
 
                 fig.update_layout(width=width, height=height, title=title)
 
-                fig.show()
+                fig.show(format)
 
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")     
 
-        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title):   
+        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title, format = ""):   
             try:
 
                  grouped_df = processed_df.groupBy(column_1, column_2).count()
@@ -109,6 +109,12 @@ class VMAnalyzer():
                  grouped_pandas_df = grouped_df.toPandas()
                  
                  severity_order = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+                 custom_colors = {
+                        "LOW": "green",
+                        "MEDIUM": "darkorange",
+                        "HIGH": "red",
+                        "CRITICAL": "purple"
+                    }
                 # Create a stacked bar chart using Plotly Express
                  fig = px.bar(
                     grouped_pandas_df,
@@ -117,17 +123,18 @@ class VMAnalyzer():
                     color=column_2,
                     category_orders={"baseSeverity": severity_order},
                     labels={column_1: xAxis, "count": yAxis + " Count", column_2: yAxis},
-                    title=title
+                    title=title,
+                    color_discrete_map=custom_colors
                  )
 
 
                  fig.update_layout(barmode='stack', width=width, height=height)
 
-                 fig.show()
+                 fig.show(format)
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")       
 
-        def find_mode_category(self, df, filter_col, column, xAxis, yAxis, width, height):   
+        def find_mode_category(self, df, filter_col, column, xAxis, yAxis, width, height, format = ""):   
             try:
                 
                mode_df  = df.groupBy(filter_col).agg(mode(column).alias(yAxis))
@@ -138,12 +145,12 @@ class VMAnalyzer():
                # Create a bar chart using Plotly
                fig = px.bar(mode_pandas, x=xAxis, y=yAxis, title=f"Mode of {yAxis} by {xAxis}", width=width, height=height)
               
-               fig.show()
+               fig.show(format)
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
 
-        def find_mean_category(self, df, filter_col, column, xAxis, yAxis, width, height):   
+        def find_mean_category(self, df, filter_col, column, xAxis, yAxis, width, height, format = ""):   
             try:
                mode_df  = df.groupBy(filter_col).mean(column)
                mode_df = mode_df.withColumnRenamed(filter_col, xAxis)
@@ -154,12 +161,12 @@ class VMAnalyzer():
                # Create a bar chart using Plotly
                fig = px.bar(mode_pandas, x=xAxis, y=yAxis, title=f"Mean of {yAxis} by {xAxis}", width=width, height=height)
               
-               fig.show()
+               fig.show(format)
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
 
-        def show_bubble_chart(self, df, column_1, column_2, xAxis, yAxis, size_col, color_col, width, height):   
+        def show_bubble_chart(self, df, column_1, column_2, xAxis, yAxis, size_col, color_col, width, height, format = ""):   
             try:
                  
                  fig = px.scatter(
@@ -175,7 +182,7 @@ class VMAnalyzer():
                     )
 
                  # Show the chart
-                 fig.show()
+                 fig.show(format)
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
