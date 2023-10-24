@@ -103,14 +103,27 @@ class VMAnalyzer():
         def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title):   
             try:
 
-                  fig = px.bar(processed_df.toPandas(), x=column_1, y=column_2, color=column_1,
-                     labels={column_1: xAxis, column_2: yAxis},
-                     title=title)
+                 grouped_df = processed_df.groupBy(column_1, column_2).count()
+                 grouped_df.show()
+                # Convert the PySpark DataFrame to a Pandas DataFrame for plotting
+                 grouped_pandas_df = grouped_df.toPandas()
+                 
+                 severity_order = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+                # Create a stacked bar chart using Plotly Express
+                 fig = px.bar(
+                    grouped_pandas_df,
+                    x=column_1,
+                    y="count",
+                    color=column_2,
+                    category_orders={"baseSeverity": severity_order},
+                    labels={column_1: xAxis, "count": yAxis + " Count", column_2: yAxis},
+                    title=title
+                 )
 
-                  fig.update_layout(barmode='stack', width=width, height=height)
 
-                  fig.show()
+                 fig.update_layout(barmode='stack', width=width, height=height)
 
+                 fig.show()
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")       
 
@@ -142,6 +155,27 @@ class VMAnalyzer():
                fig = px.bar(mode_pandas, x=xAxis, y=yAxis, title=f"Mean of {yAxis} by {xAxis}", width=width, height=height)
               
                fig.show()
+               
+            except Exception as e:
+                print(f"An error occurred while calculating mode: {str(e)}")   
+
+        def show_bubble_chart(self, df, column_1, column_2, xAxis, yAxis, size_col, color_col, width, height):   
+            try:
+                 
+                 fig = px.scatter(
+                        df.toPandas(),
+                        x= column_1,
+                        y= column_2,
+                        size= size_col,
+                        color= color_col,
+                        labels={column_1: xAxis, column_2: yAxis},
+                        title="Bubble Chart of CVE Data",
+                        width=width,
+                        height=height
+                    )
+
+                 # Show the chart
+                 fig.show()
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
