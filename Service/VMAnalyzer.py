@@ -58,15 +58,25 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred while performing correlation analysis: {str(e)}")   
 
-        def show_correlation_matrix_heatmap(self, processed_df, column_display_info, width, height, format = ""):   
+        def show_heatmap(self, df, width, height, title = "", format = ""):   
+            try:
+
+                fig = px.imshow(df, zmin=-1, zmax=1)
+                fig.update_layout(width=width, height=height, title=title)
+
+                fig.show(format)
+
+            except Exception as e:
+                    print(f"An error occurred rendering heat map: {str(e)}")  
+
+        def calculate_correlation(self, processed_df, column_display_info):   
             try:
                 columns = [info['column_name'] for info in column_display_info]
                 display_names = [info['display_name'] for info in column_display_info]
                 data = processed_df.select(columns)
-                # Convert the DataFrame into an RDD of Vectors
+
                 rdd_table = data.rdd.map(lambda row: row[0:])
 
-                # Calculate the Pearson correlation matrix using the RDD of Vectors
                 correlation_matrix = Statistics.corr(rdd_table, method="pearson")
 
                 correlation_df = pd.DataFrame(correlation_matrix, columns=columns, index=columns)
@@ -76,15 +86,10 @@ class VMAnalyzer():
                 print("Correlation matrix:")
                 print(correlation_df)
 
-                # Create a heatmap using Plotly
-                fig = px.imshow(correlation_df, zmin=-1, zmax=1)
-                fig.update_layout(width=width, height=height, title="Correlation Heatmap")
-
-                # Show the heatmap
-                fig.show(format)
+                return correlation_df
 
             except Exception as e:
-                    print(f"An error occurred rendering heat map: {str(e)}")  
+                    print(f"An error occurred while calculating correlation: {str(e)}")  
                      
 
         def show_correlation_scatter_plot(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title, format = ""):   
@@ -105,7 +110,7 @@ class VMAnalyzer():
 
                  grouped_df = processed_df.groupBy(column_1, column_2).count()
                  grouped_df.show()
-                # Convert the PySpark DataFrame to a Pandas DataFrame for plotting
+           
                  grouped_pandas_df = grouped_df.toPandas()
                  
                  severity_order = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
@@ -115,7 +120,7 @@ class VMAnalyzer():
                         "HIGH": "red",
                         "CRITICAL": "purple"
                     }
-                # Create a stacked bar chart using Plotly Express
+            
                  fig = px.bar(
                     grouped_pandas_df,
                     x=column_1,
@@ -134,37 +139,29 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")       
 
-        def find_mode_category(self, df, filter_col, column, xAxis, yAxis, width, height, format = ""):   
+        def calculate_mode_category(self, df, filter_col, column, filter_col_name, col_name):   
             try:
                 
-               mode_df  = df.groupBy(filter_col).agg(mode(column).alias(yAxis))
-               mode_df = mode_df.withColumnRenamed(filter_col, xAxis)
-               mode_pandas = mode_df.toPandas()
-               
+               mode_df  = df.groupBy(filter_col).agg(mode(column).alias(col_name))
+               mode_df = mode_df.withColumnRenamed(filter_col, filter_col_name)  
                mode_df.show()
-               # Create a bar chart using Plotly
-               fig = px.bar(mode_pandas, x=xAxis, y=yAxis, title=f"Mode of {yAxis} by {xAxis}", width=width, height=height)
-              
-               fig.show(format)
+               
+               return mode_df
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
 
-        def find_mean_category(self, df, filter_col, column, xAxis, yAxis, width, height, format = ""):   
+        def calculate_mean_category(self, df, filter_col, column, filter_col_name, col_name):   
             try:
                mode_df  = df.groupBy(filter_col).mean(column)
-               mode_df = mode_df.withColumnRenamed(filter_col, xAxis)
-               mode_df = mode_df.withColumnRenamed(f"avg({column})", yAxis)
-               mode_pandas = mode_df.toPandas()
-               
+               mode_df = mode_df.withColumnRenamed(filter_col, filter_col_name)
+               mode_df = mode_df.withColumnRenamed(f"avg({column})", col_name)
                mode_df.show()
-               # Create a bar chart using Plotly
-               fig = px.bar(mode_pandas, x=xAxis, y=yAxis, title=f"Mean of {yAxis} by {xAxis}", width=width, height=height)
-              
-               fig.show(format)
+
+               return mode_df
                
             except Exception as e:
-                print(f"An error occurred while calculating mode: {str(e)}")   
+                print(f"An error occurred while calculating mean: {str(e)}")   
 
         def show_bubble_chart(self, df, column_1, column_2, xAxis, yAxis, size_col, color_col, width, height, format = ""):   
             try:
@@ -181,13 +178,12 @@ class VMAnalyzer():
                         height=height
                     )
 
-                 # Show the chart
                  fig.show(format)
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
 
-        def find_range(self, df, columns):   
+        def calculate_range(self, df, columns):   
             try:
                 
                 aggregation_exprs = []
@@ -204,3 +200,24 @@ class VMAnalyzer():
                
             except Exception as e:
                 print(f"An error occurred while calculating range: {str(e)}")   
+
+        def display_table(data):
+            print("Attribute   Range      Mean  Mode")
+
+            for item in data:
+                attr_name = item["name"].ljust(11)  # Left-align attribute name
+                attr_range = f"[{item['range'][0]}, {item['range'][1]}]".ljust(10)
+                attr_mean = str(item["mean"]).ljust(6)
+                attr_mode = str(item["mode"]).ljust(5)
+                
+                print(f"{attr_name}  {attr_range}  {attr_mean}  {attr_mode}")
+
+        def show_bar_chart(self, df, xAxis, yAxis, width, height, title = "", format = ""):   
+            try:
+
+               fig = px.bar(df.toPandas(), x=xAxis, y=yAxis, title=f"{title}", width=width, height=height)
+              
+               fig.show(format)
+               
+            except Exception as e:
+                print(f"An error occurred while rendering bar chart: {str(e)}")   
