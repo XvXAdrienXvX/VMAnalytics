@@ -5,11 +5,12 @@ from pyspark.mllib.stat import Statistics
 from pyspark.ml import Pipeline
 from pyspark.ml.stat import Correlation
 from pyspark.ml.feature import VectorAssembler
-from pyspark.sql.functions import udf, mode, min, max
+from pyspark.sql.functions import udf, mode, min, max, regexp_replace
 from pyspark.ml.linalg import Vectors, DenseVector
 from pyspark.sql.types import DoubleType
 import plotly.graph_objs as go
 import numpy as np
+import plotly.figure_factory as ff
 
 class VMAnalyzer():
        
@@ -96,7 +97,7 @@ class VMAnalyzer():
             try:
 
                 fig = px.scatter(processed_df.toPandas(), x=column_1, y=column_2,
-                         labels={column_1: xAxis, column_2: yAxis})
+                         labels={column_1: xAxis, column_2: yAxis}, color=column_1)
 
                 fig.update_layout(width=width, height=height, title=title)
 
@@ -141,7 +142,7 @@ class VMAnalyzer():
 
         def calculate_mode_category(self, df, filter_col, column, filter_col_name, col_name):   
             try:
-                
+               df = df.withColumn(filter_col, regexp_replace(df[filter_col], '_', ' ')) 
                mode_df  = df.groupBy(filter_col).agg(mode(column).alias(col_name))
                mode_df = mode_df.withColumnRenamed(filter_col, filter_col_name)  
                mode_df.show()
@@ -153,6 +154,7 @@ class VMAnalyzer():
 
         def calculate_mean_category(self, df, filter_col, column, filter_col_name, col_name):   
             try:
+               df = df.withColumn(filter_col, regexp_replace(df[filter_col], '_', ' ')) 
                mode_df  = df.groupBy(filter_col).mean(column)
                mode_df = mode_df.withColumnRenamed(filter_col, filter_col_name)
                mode_df = mode_df.withColumnRenamed(f"avg({column})", col_name)
@@ -187,7 +189,7 @@ class VMAnalyzer():
             try:
                 
                 aggregation_exprs = []
-        
+                
                 for col_name in columns:
                     min_expr = min(df[col_name]).alias(f"min_{col_name}")
                     max_expr = max(df[col_name]).alias(f"max_{col_name}")
@@ -221,3 +223,23 @@ class VMAnalyzer():
                
             except Exception as e:
                 print(f"An error occurred while rendering bar chart: {str(e)}")   
+
+        def show_box_plot_chart(self, df, xAxis, yAxis, width, height, title = "", format = ""):   
+            try:
+
+               fig = px.box(df.toPandas(), x=xAxis, y=yAxis, title=f"{title}", width=width, height=height)
+              
+               fig.show(format)
+               
+            except Exception as e:
+                print(f"An error occurred while rendering box plot: {str(e)}") 
+
+        def show_histogram(self, df, xAxis, yAxis, width, height, title = "", format = ""):   
+            try:
+
+               fig = px.histogram(df.toPandas(), x=xAxis, y=yAxis, title=f"{title}", width=width, height=height, barmode="group", color=xAxis)
+               fig.update_yaxes(title_text=yAxis)
+               fig.show(format)
+               
+            except Exception as e:
+                print(f"An error occurred while rendering histogram: {str(e)}") 
