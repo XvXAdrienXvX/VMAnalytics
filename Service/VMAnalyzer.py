@@ -11,6 +11,9 @@ from pyspark.sql.types import DoubleType
 import plotly.graph_objs as go
 import numpy as np
 import plotly.figure_factory as ff
+from pyspark.ml.clustering import KMeans
+from pyspark.ml.evaluation import ClusteringEvaluator
+from pyspark.ml.feature import VectorAssembler
 
 class VMAnalyzer():
        
@@ -59,13 +62,18 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred while performing correlation analysis: {str(e)}")   
 
-        def show_heatmap(self, df, width, height, title = "", format = ""):   
+        def show_heatmap(self, df, options):   
             try:
 
                 fig = px.imshow(df, zmin=-1, zmax=1)
-                fig.update_layout(width=width, height=height, title=title)
+                
+                label_font = dict(size=options['font_size'], color=options['font_color'])
+                tick_font = dict(size=options['value_size'], color=options['value_color'])
+                fig.update_xaxes(title_font=label_font, tickfont = tick_font)
+                fig.update_yaxes(title_font=label_font, tickfont = tick_font)
+                fig.update_layout(width=options['width'], height=options['height'], title=options['title'])
 
-                fig.show(format)
+                fig.show(options['format'])
 
             except Exception as e:
                     print(f"An error occurred rendering heat map: {str(e)}")  
@@ -93,20 +101,31 @@ class VMAnalyzer():
                     print(f"An error occurred while calculating correlation: {str(e)}")  
                      
 
-        def show_correlation_scatter_plot(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title, format = ""):   
+        def show_correlation_scatter_plot(self, processed_df, column_1, column_2, options):   
             try:
 
-                fig = px.scatter(processed_df.toPandas(), x=column_1, y=column_2,
-                         labels={column_1: xAxis, column_2: yAxis}, color=column_1)
+                    color_mapping = {column_1: 'purple'}
+                    fig = px.scatter(processed_df.toPandas(), x=column_1, y=column_2,
+                                    labels={column_1: options['xAxis'], column_2: options['yAxis']},
+                                    color_discrete_map=color_mapping
+                                    )
 
-                fig.update_layout(width=width, height=height, title=title)
+                    label_font = dict(size=options['font_size'], color=options['font_color'])
+                    tick_font = dict(size=12, color='black')
+                    fig.update_xaxes(title_font=label_font)
 
-                fig.show(format)
+                    # Adjust character spacing for the "Base Score" label
+                    fig.update_yaxes(title_text=options['yAxis'], title_font=label_font, tickfont= tick_font)
+                    fig.update_xaxes(title_text=options['xAxis'], title_font=label_font, tickfont= tick_font)
+
+                    fig.update_layout(width=options['width'], height=options['height'], title=options['title'])
+
+                    fig.show(options['format'])
 
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")     
 
-        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, xAxis, yAxis, width, height, title, format = ""):   
+        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, options):   
             try:
 
                  grouped_df = processed_df.groupBy(column_1, column_2).count()
@@ -128,15 +147,19 @@ class VMAnalyzer():
                     y="count",
                     color=column_2,
                     category_orders={"baseSeverity": severity_order},
-                    labels={column_1: xAxis, "count": yAxis + " Count", column_2: yAxis},
-                    title=title,
+                    labels={column_1: options['xAxisLabel'], "count": options['yAxisLabel'], column_2: options['yAxisLabel']},
+                    title=options['title'],
                     color_discrete_map=custom_colors
                  )
+                 label_font = dict(size=options['font_size'], color=options['font_color'])
+                 tick_font = dict(size=options['value_size'], color=options['value_color'])
+                 fig.update_xaxes(title_text=options['xAxisLabel'], title_font=label_font, tickfont = tick_font)
+                 fig.update_yaxes(title_text=options['yAxisLabel'], title_font=label_font, tickfont = tick_font)
+               
 
+                 fig.update_layout(barmode='stack', width=options['width'], height=options['height'])
 
-                 fig.update_layout(barmode='stack', width=width, height=height)
-
-                 fig.show(format)
+                 fig.show(options['format'])
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")       
 
@@ -165,22 +188,28 @@ class VMAnalyzer():
             except Exception as e:
                 print(f"An error occurred while calculating mean: {str(e)}")   
 
-        def show_bubble_chart(self, df, column_1, column_2, xAxis, yAxis, size_col, color_col, width, height, format = ""):   
+        def show_bubble_chart(self, df, column_1, column_2, options):   
             try:
-                 
+                 df = df.withColumn(options['color_col'], regexp_replace(df[options['color_col']], '_', ' ')) 
+                 df = df.withColumnRenamed(options['color_col'], options['key_label'])
                  fig = px.scatter(
                         df.toPandas(),
                         x= column_1,
                         y= column_2,
-                        size= size_col,
-                        color= color_col,
-                        labels={column_1: xAxis, column_2: yAxis},
-                        title="Bubble Chart of CVE Data",
-                        width=width,
-                        height=height
+                        size= options['size_col'],
+                        color= options['key_label'],
+                        labels={column_1: options['xAxisLabel'], column_2: options['yAxisLabel']},
+                        title=options['title'],
+                        width=options['width'],
+                        height=options['height']
                     )
 
-                 fig.show(format)
+                 label_font = dict(size=options['font_size'], color=options['font_color'])
+                 tick_font = dict(size=options['value_size'], color=options['value_color'])
+                 fig.update_xaxes(title_text=options['xAxisLabel'], title_font=label_font, tickfont = tick_font)
+                 fig.update_yaxes(title_text=options['yAxisLabel'], title_font=label_font, tickfont = tick_font)
+
+                 fig.show(options['format'])
                
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
@@ -234,12 +263,45 @@ class VMAnalyzer():
             except Exception as e:
                 print(f"An error occurred while rendering box plot: {str(e)}") 
 
-        def show_histogram(self, df, xAxis, yAxis, width, height, title = "", format = ""):   
+        def show_histogram(self, df, column_1, column_2, options):   
             try:
 
-               fig = px.histogram(df.toPandas(), x=xAxis, y=yAxis, title=f"{title}", width=width, height=height, barmode="group", color=xAxis)
-               fig.update_yaxes(title_text=yAxis)
-               fig.show(format)
+               fig = px.histogram(df.toPandas(), x=column_1, y=column_2, title=f"{options['title']}", width=options['width'], height=options['height'], barmode="group", color=column_1)
+               label_font = dict(size=options['font_size'], color=options['font_color'])
+               tick_font = dict(size=options['value_size'], color=options['value_color'])
+               fig.update_xaxes(title_text=options['xAxisLabel'], title_font=label_font, tickfont = tick_font)
+               fig.update_yaxes(title_text=options['yAxisLabel'], title_font=label_font, tickfont = tick_font)
+               fig.show(options['format'])
                
             except Exception as e:
                 print(f"An error occurred while rendering histogram: {str(e)}") 
+
+        def clustering_pipeline(self, processed_df, columns):   
+            try:
+              
+                assembler = VectorAssembler(inputCols=columns, outputCol='features')
+                data = assembler.transform(processed_df)
+
+                # Train the K-means clustering model
+                kmeans = KMeans(k=5, seed=42)
+                model = kmeans.fit(data)
+
+                # Make predictions
+                predictions = model.transform(data)
+
+                # Evaluate the clustering results using WCSS
+                evaluator = ClusteringEvaluator()
+                wcss = evaluator.evaluate(predictions)
+                print("Within-Cluster Sum of Squares (WCSS):", wcss)
+
+                # Get the cluster assignments
+                cluster_assignments = predictions.select("prediction").rdd.flatMap(lambda x: x).collect()
+                
+                # Visualize the clusters using Plotly Express
+                fig = px.scatter(processed_df.toPandas(), x=columns[0], y=columns[1], color=cluster_assignments, title="K-means Clustering")
+                fig.update_layout(width=700, height=600, title="K-means clustering base metrics")
+                
+                fig.show()
+
+            except Exception as e:
+                    print(f"An error occurred while performing clustering: {str(e)}")  
