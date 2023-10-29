@@ -15,8 +15,8 @@ limit = 2000
 results = {}
 
 payload = {
-    'pubStartDate': '2017-08-04T00:00:00.000',
-    'pubEndDate': '2017-10-22T00:00:00.000',
+    'pubStartDate': '2018-08-04T00:00:00.000',
+    'pubEndDate': '2018-10-22T00:00:00.000',
     'resultsPerPage': str(limit),
     'startIndex': str(offset)
 }
@@ -26,10 +26,12 @@ if response :
     vulnerabilities = data.get('vulnerabilities', [])
     for vulnerability in vulnerabilities:
         vuln_id = vulnerability['cve']['id']
+        published = vulnerability['cve']['published']
         cvss_metric_v31 = vulnerability['cve'].get('metrics', {}).get('cvssMetricV31', [{}])[0]
         cvss_data = cvss_metric_v31.get('cvssData', {})
         vuln_info = {
             'id': vuln_id,
+            'published': published,
             'descriptions': vulnerability['cve']['descriptions'],
             'attackVector': cvss_data.get('attackVector', ''),
             'vectorString': cvss_data.get('vectorString', ''),
@@ -55,7 +57,7 @@ if results:
         os.makedirs(output_directory)
 
     # Specify the CSV file path
-    csv_file = os.path.join(output_directory, 'vulnerabilities.csv')
+    csv_file = os.path.join(output_directory, 'vulnerability_dataset.csv')
 
     # Check if the CSV file already exists
     file_exists = os.path.exists(csv_file)

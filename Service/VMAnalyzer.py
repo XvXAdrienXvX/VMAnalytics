@@ -1,6 +1,7 @@
 import pandas as pd
 from pyspark.ml.feature import StringIndexer, OneHotEncoder
 import plotly.express as px
+import plotly.graph_objects as go
 from pyspark.mllib.stat import Statistics
 from pyspark.ml import Pipeline
 from pyspark.ml.stat import Correlation
@@ -13,7 +14,7 @@ import numpy as np
 import plotly.figure_factory as ff
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
-from pyspark.ml.feature import VectorAssembler
+from pyspark.ml.feature import VectorAssembler, StandardScaler, PCA
 
 class VMAnalyzer():
        
@@ -175,10 +176,14 @@ class VMAnalyzer():
             except Exception as e:
                 print(f"An error occurred while calculating mode: {str(e)}")   
 
-        def calculate_mean_category(self, df, filter_col, column, filter_col_name, col_name):   
+        def calculate_mean_category(self, df, filter_col, column, filter_col_name, col_name, setOrderBy = False):   
             try:
                df = df.withColumn(filter_col, regexp_replace(df[filter_col], '_', ' ')) 
-               mode_df  = df.groupBy(filter_col).mean(column)
+               if setOrderBy:
+                    mode_df  = df.orderBy(filter_col).groupBy(filter_col).mean(column)
+               else:
+                    mode_df  = df.groupBy(filter_col).mean(column)
+        
                mode_df = mode_df.withColumnRenamed(filter_col, filter_col_name)
                mode_df = mode_df.withColumnRenamed(f"avg({column})", col_name)
                mode_df.show()
@@ -271,37 +276,93 @@ class VMAnalyzer():
                tick_font = dict(size=options['value_size'], color=options['value_color'])
                fig.update_xaxes(title_text=options['xAxisLabel'], title_font=label_font, tickfont = tick_font)
                fig.update_yaxes(title_text=options['yAxisLabel'], title_font=label_font, tickfont = tick_font)
+               
                fig.show(options['format'])
                
             except Exception as e:
                 print(f"An error occurred while rendering histogram: {str(e)}") 
 
+        def show_line_chart(self, df, column_1, column_2, options):   
+            try:
+
+               fig = px.line(df.toPandas(), x=column_1, y=column_2, width=options['width'], height=options['height'], title=options['title'])
+               label_font = dict(size=options['font_size'], color=options['font_color'])
+               tick_font = dict(size=options['value_size'], color=options['value_color'])
+               fig.update_xaxes(title_text=options['xAxisLabel'], title_font=label_font, tickfont = tick_font)
+               fig.update_yaxes(title_text=options['yAxisLabel'], title_font=label_font, tickfont = tick_font)
+               fig.show(options['format'])
+               
+            except Exception as e:
+                print(f"An error occurred while rendering line chart: {str(e)}") 
+
+        def show_go_bar_chart_mean_mode(self, df_mode,df_mean, column_1, column_2, options):   
+            try:
+                mean_df_pandas = df_mean.toPandas()
+                mode_df_pandas = df_mode.toPandas()
+                mean_trace = go.Bar(
+                    x=mean_df_pandas[column_1],
+                    y=mean_df_pandas[column_2],
+                    name="Mean"
+                )
+
+                
+                mode_trace = go.Bar(
+                    x=mode_df_pandas[column_1],
+                    y=mode_df_pandas[column_2],
+                    name="Mode"
+                )
+
+                
+                layout = go.Layout(
+                    title=options['title'],
+                    xaxis_title=column_1,
+                    yaxis_title=column_2,
+                    barmode="group" 
+                )
+
+                # Create the figure and add the traces
+                fig = go.Figure(data=[mean_trace, mode_trace], layout=layout)
+                fig.update_layout(
+                            width=options['width'],  
+                            height=options['height']  
+                        )
+                # Show the plot
+                fig.show()
+               
+            except Exception as e:
+                print(f"An error occurred while rendering go bar chart: {str(e)}")   
+
         def clustering_pipeline(self, processed_df, columns):   
             try:
               
-                assembler = VectorAssembler(inputCols=columns, outputCol='features')
-                data = assembler.transform(processed_df)
+                assembler = VectorAssembler(inputCols=columns, outputCol="features")
+                data_df = assembler.transform(processed_df)
 
-                # Train the K-means clustering model
-                kmeans = KMeans(k=5, seed=42)
-                model = kmeans.fit(data)
+                # Scaling the features
+                scaler = StandardScaler(inputCol="features", outputCol="scaled_features")
+                scaler_model = scaler.fit(data_df)
+                data_df = scaler_model.transform(data_df)
 
-                # Make predictions
-                predictions = model.transform(data)
-
-                # Evaluate the clustering results using WCSS
-                evaluator = ClusteringEvaluator()
-                wcss = evaluator.evaluate(predictions)
-                print("Within-Cluster Sum of Squares (WCSS):", wcss)
-
-                # Get the cluster assignments
-                cluster_assignments = predictions.select("prediction").rdd.flatMap(lambda x: x).collect()
-                
-                # Visualize the clusters using Plotly Express
-                fig = px.scatter(processed_df.toPandas(), x=columns[0], y=columns[1], color=cluster_assignments, title="K-means Clustering")
-                fig.update_layout(width=700, height=600, title="K-means clustering base metrics")
-                
-                fig.show()
+                data_df.show(5)
 
             except Exception as e:
                     print(f"An error occurred while performing clustering: {str(e)}")  
+
+        def pca_pipeline(self, processed_df, columns):   
+            try:
+                assembler = VectorAssembler(inputCols=columns, outputCol="features")
+                assembled_df = assembler.transform(processed_df.select(columns))
+
+                scaler = StandardScaler(inputCol="features", outputCol="scaledFeatures", withStd=True, withMean=True)
+                scaler_model = scaler.fit(assembled_df)
+                scaled_df = scaler_model.transform(assembled_df)
+
+                pca = PCA(k=len(columns), inputCol="scaledFeatures", outputCol="pcaFeatures")
+                pca_model = pca.fit(scaled_df)
+                pca_result = pca_model.transform(scaled_df)
+
+                for i, col in enumerate(columns):
+                    pca_result.select(col, "pcaFeatures").show()
+
+            except Exception as e:
+                    print(f"An error occurred while performing pca analysis: {str(e)}")  

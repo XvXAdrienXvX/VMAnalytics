@@ -2,7 +2,7 @@ import pyspark
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType,StructField, StringType, IntegerType , FloatType
 from pyspark.sql.types import ArrayType, DoubleType, BooleanType
-from pyspark.sql.functions import col,array_contains
+from pyspark.sql.functions import col,array_contains, substring
 import os
 import pandas as pd
 
@@ -39,6 +39,8 @@ class DataCleaner():
 
               # Remove duplicate rows
               dataFrame = dataFrame.dropDuplicates(subset=['id'])
+              
+              dataFrame = dataFrame.withColumn('year', substring(col('id'), 5, 4))
             #   network_attacks_df = dataFrame.filter(dataFrame['attackVector'] == 'NETWORK')
             #   local_attacks_df = dataFrame.filter(dataFrame['attackVector'] == 'LOCAL')
             #   physical_attacks_df = dataFrame.filter(dataFrame['attackVector'] == 'PHYSICAL')

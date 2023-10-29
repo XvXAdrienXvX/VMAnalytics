@@ -20,7 +20,8 @@ class DataReader():
           StructField('baseScore', FloatType(), False),
           StructField('baseSeverity', StringType(), False),
           StructField('exploitabilityScore', FloatType(), False),
-          StructField('impactScore', FloatType(), False)
+          StructField('impactScore', FloatType(), False),
+          StructField('year', StringType(), True)
           ])
 
           return csv_file, vmSchema
