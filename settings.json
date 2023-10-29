@@ -4,5 +4,11 @@
         "filename": "vulnerabilities.csv",
         "output": "vm_cleaned.csv",
         "input": "vm_cleaned.csv"
+    },
+    "Prod": {
+        "filepath": "Datasets",
+        "filename": "vulnerabilities.csv",
+        "output": "vm_cleaned_sample.csv",
+        "input": "vm_cleaned_sample.csv"
     }
 }

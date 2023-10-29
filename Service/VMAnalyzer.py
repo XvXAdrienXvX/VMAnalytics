@@ -346,6 +346,7 @@ class VMAnalyzer():
                 #data_df.show(5)
 
                 wssse_values =[]
+                silhouette_scores_dict = {col: [] for col in columns}
                 evaluator = ClusteringEvaluator(predictionCol='prediction', featuresCol='scaled_features', \
                                                 metricName='silhouette', distanceMeasure='squaredEuclidean')
 
@@ -355,18 +356,22 @@ class VMAnalyzer():
                     output = KMeans_fit.transform(data_df)   
                     score = evaluator.evaluate(output)   
                     wssse_values.append(score)  
+                    for col in columns:
+                        silhouette_scores_dict[col].append(score)
                     print("Silhouette Score:",score)
 
-                # Define the K-means clustering model
-                kmeans = KMeans(k=4, featuresCol="scaled_features", predictionCol="cluster")
-                kmeans_model = kmeans.fit(data_df)
+                silhouette_scores_df = pd.DataFrame(silhouette_scores_dict)
+                print(silhouette_scores_df)
+                # # Define the K-means clustering model
+                # kmeans = KMeans(k=4, featuresCol="scaled_features", predictionCol="cluster")
+                # kmeans_model = kmeans.fit(data_df)
 
-                # Assigning the data points to clusters
-                clustered_data = kmeans_model.transform(data_df)
+                # # Assigning the data points to clusters
+                # clustered_data = kmeans_model.transform(data_df)
 
-                output = KMeans_fit.transform(data_df)
-                wssse = evaluator.evaluate(output)
-                print(f"Within Set Sum of Squared Errors (WSSSE) = {wssse}")
+                # output = KMeans_fit.transform(data_df)
+                # wssse = evaluator.evaluate(output)
+                # print(f"Within Set Sum of Squared Errors (WSSSE) = {wssse}")
 
             except Exception as e:
                     print(f"An error occurred while performing clustering: {str(e)}")  
