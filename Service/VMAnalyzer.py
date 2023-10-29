@@ -327,7 +327,7 @@ class VMAnalyzer():
                             height=options['height']  
                         )
                 # Show the plot
-                fig.show()
+                fig.show(options['format'])
                
             except Exception as e:
                 print(f"An error occurred while rendering go bar chart: {str(e)}")   
@@ -343,7 +343,30 @@ class VMAnalyzer():
                 scaler_model = scaler.fit(data_df)
                 data_df = scaler_model.transform(data_df)
 
-                data_df.show(5)
+                #data_df.show(5)
+
+                wssse_values =[]
+                evaluator = ClusteringEvaluator(predictionCol='prediction', featuresCol='scaled_features', \
+                                                metricName='silhouette', distanceMeasure='squaredEuclidean')
+
+                for i in range(2,8):    
+                    KMeans_mod = KMeans(featuresCol='scaled_features', k=i)  
+                    KMeans_fit = KMeans_mod.fit(data_df)  
+                    output = KMeans_fit.transform(data_df)   
+                    score = evaluator.evaluate(output)   
+                    wssse_values.append(score)  
+                    print("Silhouette Score:",score)
+
+                # Define the K-means clustering model
+                kmeans = KMeans(k=4, featuresCol="scaled_features", predictionCol="cluster")
+                kmeans_model = kmeans.fit(data_df)
+
+                # Assigning the data points to clusters
+                clustered_data = kmeans_model.transform(data_df)
+
+                output = KMeans_fit.transform(data_df)
+                wssse = evaluator.evaluate(output)
+                print(f"Within Set Sum of Squared Errors (WSSSE) = {wssse}")
 
             except Exception as e:
                     print(f"An error occurred while performing clustering: {str(e)}")  
