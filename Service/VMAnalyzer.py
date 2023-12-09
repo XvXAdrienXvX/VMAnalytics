@@ -66,13 +66,25 @@ class VMAnalyzer():
         def show_heatmap(self, df, options):   
             try:
 
-                fig = px.imshow(df, zmin=-1, zmax=1)
-                
-                label_font = dict(size=options['font_size'], color=options['font_color'])
-                tick_font = dict(size=options['value_size'], color=options['value_color'])
-                fig.update_xaxes(title_font=label_font, tickfont = tick_font)
-                fig.update_yaxes(title_font=label_font, tickfont = tick_font)
-                fig.update_layout(width=options['width'], height=options['height'], title=options['title'])
+                fig = px.imshow(df, zmin=-1, zmax=1, color_continuous_scale=px.colors.sequential.Cividis_r)
+
+                font_style = dict(size=options['value_size'], color='white')
+
+                for i in range(len(df.index)):
+                    for j in range(len(df.columns)):
+                        fig.add_annotation(text=str(round(df.iloc[i, j], 2)),
+                                        x=df.columns[j],
+                                        y=df.index[i],
+                                        showarrow=False,
+                                        font=font_style)
+
+                fig.update_layout(
+                    xaxis=dict(title_font=dict(size=options['font_size'], color=options['font_color']),
+                            tickfont=dict(size=options['value_size'], color=options['value_color'])),
+                    yaxis=dict(title_font=dict(size=options['font_size'], color=options['font_color']),
+                            tickfont=dict(size=options['value_size'], color=options['value_color'])),
+                    width=options['width'], height=options['height'], title=options['title']
+                )
 
                 fig.show(options['format'])
 
@@ -361,6 +373,8 @@ class VMAnalyzer():
                     print("Silhouette Score:",score)
 
                 silhouette_scores_df = pd.DataFrame(silhouette_scores_dict)
+                # silhouette_scores_df_reset = silhouette_scores_df.reset_index()
+                # silhouette_scores_df_reset = silhouette_scores_df_reset.rename(columns={'index': 'k'})
                 print(silhouette_scores_df)
                 # # Define the K-means clustering model
                 # kmeans = KMeans(k=4, featuresCol="scaled_features", predictionCol="cluster")
@@ -372,6 +386,8 @@ class VMAnalyzer():
                 # output = KMeans_fit.transform(data_df)
                 # wssse = evaluator.evaluate(output)
                 # print(f"Within Set Sum of Squared Errors (WSSSE) = {wssse}")
+                # fig = px.line(silhouette_scores_df_reset, x='k', y=['baseScore', 'exploitabilityScore', 'impactScore'])
+                # fig.show()
 
             except Exception as e:
                     print(f"An error occurred while performing clustering: {str(e)}")  
