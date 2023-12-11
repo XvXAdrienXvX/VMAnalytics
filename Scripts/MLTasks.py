@@ -27,6 +27,25 @@ vmSchema = StructType([
     StructField('priority', StringType(), True)
 ])
     
+def encode_df(df):
+    indexer1 = StringIndexer(inputCol='attackVector', outputCol='AttackVectorNumeric')
+    indexer2 = StringIndexer(inputCol='confidentialityImpact', outputCol='ConfidentialityImpactNumeric')
+    indexer3 = StringIndexer(inputCol='integrityImpact', outputCol='IntegrityImpactNumeric')
+    indexer4 = StringIndexer(inputCol='baseSeverity', outputCol='BaseSeverityNumeric')
+    indexer5 = StringIndexer(inputCol='availabilityImpact', outputCol='AvailabilityImpactNumeric')
+    indexer6 = StringIndexer(inputCol="priority", outputCol="priorityNumeric")
+    indexer7 = StringIndexer(inputCol='attackComplexity', outputCol='attackComplexityNumeric')
+
+    encoder1 = OneHotEncoder(inputCol="AttackVectorNumeric", outputCol="AttackVectorEncoded")
+
+    stages = [indexer1, indexer2, indexer3, indexer4, indexer5, indexer6, indexer7, encoder1]
+
+    pipeline = Pipeline(stages=stages)
+    model = pipeline.fit(dataFrame)
+    transformed_df = model.transform(dataFrame)   
+    
+    return transformed_df
+
 def pre_processing(df):
     immediate_action_thresholds = ['CRITICAL', 'HIGH']
     allocate_threshold = 'MEDIUM'
@@ -43,63 +62,9 @@ def pre_processing(df):
         
 def convert_to_pandas(spark_df):
     return spark_df.toPandas()
-
-def perform_clustering(dataFrame):   
-    indexer1 = StringIndexer(inputCol='attackVector', outputCol='AttackVectorNumeric')
-    indexer2 = StringIndexer(inputCol='confidentialityImpact', outputCol='ConfidentialityImpactNumeric')
-    indexer3 = StringIndexer(inputCol='integrityImpact', outputCol='IntegrityImpactNumeric')
-    indexer4 = StringIndexer(inputCol='baseSeverity', outputCol='BaseSeverityNumeric')
-    indexer5 = StringIndexer(inputCol='availabilityImpact', outputCol='AvailabilityImpactNumeric')
-    indexer7 = StringIndexer(inputCol='attackComplexity', outputCol='attackComplexityNumeric')
-
-    encoder1 = OneHotEncoder(inputCol="AttackVectorNumeric", outputCol="AttackVectorEncoded")
-
-    stages = [indexer1, indexer2, indexer3, indexer4, indexer5, indexer7, encoder1]
-
-    pipeline = Pipeline(stages=stages)
-    model = pipeline.fit(dataFrame)
-    transformed_df = model.transform(dataFrame)
-    
-    columns = ['AttackVectorEncoded','impactScore', 'baseScore', 'exploitabilityScore']
-    assembler = VectorAssembler(inputCols=columns, outputCol="features")
-    data_df = assembler.transform(transformed_df)
-
-    scaler = StandardScaler(inputCol="features", outputCol="scaled_features")
-    scaler_model = scaler.fit(data_df)
-    data_df = scaler_model.transform(data_df)
-
-    wssse_values =[]
-    silhouette_scores_dict = {col: [] for col in columns}
-    evaluator = ClusteringEvaluator(predictionCol='prediction', featuresCol='scaled_features', \
-                                    metricName='silhouette', distanceMeasure='squaredEuclidean')
-
-    for i in range(2,8):    
-        KMeans_mod = KMeans(featuresCol='scaled_features', k=i)  
-        KMeans_fit = KMeans_mod.fit(data_df)  
-        output = KMeans_fit.transform(data_df)   
-        score = evaluator.evaluate(output)   
-        wssse_values.append(score)  
-        for col in columns:
-            silhouette_scores_dict[col].append(score)
-
-    print(wssse_values)
             
 def perform_decision_tree_task(dataFrame):   
-    indexer1 = StringIndexer(inputCol='attackVector', outputCol='AttackVectorNumeric')
-    indexer2 = StringIndexer(inputCol='confidentialityImpact', outputCol='ConfidentialityImpactNumeric')
-    indexer3 = StringIndexer(inputCol='integrityImpact', outputCol='IntegrityImpactNumeric')
-    indexer4 = StringIndexer(inputCol='baseSeverity', outputCol='BaseSeverityNumeric')
-    indexer5 = StringIndexer(inputCol='availabilityImpact', outputCol='AvailabilityImpactNumeric')
-    indexer6 = StringIndexer(inputCol="priority", outputCol="priorityNumeric")
-    indexer7 = StringIndexer(inputCol='attackComplexity', outputCol='attackComplexityNumeric')
-
-    encoder1 = OneHotEncoder(inputCol="AttackVectorNumeric", outputCol="AttackVectorEncoded")
-
-    stages = [indexer1, indexer2, indexer3, indexer4, indexer5, indexer6, indexer7, encoder1]
-
-    pipeline = Pipeline(stages=stages)
-    model = pipeline.fit(dataFrame)
-    transformed_df = model.transform(dataFrame)
+    transformed_df = encode_df(dataFrame)
 
     # VectorAssembler for feature vector
     feature_columns = ["AttackVectorEncoded", "attackComplexityNumeric", "baseScore"]
@@ -137,21 +102,7 @@ def perform_decision_tree_task(dataFrame):
     print(f"Recall: {recall}")
     
 def perform_logistic_regression(dataFrame):
-    indexer1 = StringIndexer(inputCol='attackVector', outputCol='AttackVectorNumeric')
-    indexer2 = StringIndexer(inputCol='confidentialityImpact', outputCol='ConfidentialityImpactNumeric')
-    indexer3 = StringIndexer(inputCol='integrityImpact', outputCol='IntegrityImpactNumeric')
-    indexer4 = StringIndexer(inputCol='baseSeverity', outputCol='BaseSeverityNumeric')
-    indexer5 = StringIndexer(inputCol='availabilityImpact', outputCol='AvailabilityImpactNumeric')
-    indexer6 = StringIndexer(inputCol="priority", outputCol="priorityNumeric")
-    indexer7 = StringIndexer(inputCol='attackComplexity', outputCol='attackComplexityNumeric')
-
-    encoder1 = OneHotEncoder(inputCol="AttackVectorNumeric", outputCol="AttackVectorEncoded")
-
-    stages = [indexer1, indexer2, indexer3, indexer4, indexer5, indexer6, indexer7, encoder1]
-
-    pipeline = Pipeline(stages=stages)
-    model = pipeline.fit(dataFrame)
-    transformed_df = model.transform(dataFrame)   
+    transformed_df = encode_df(dataFrame)
     
     feature_columns = ["AttackVectorEncoded", "attackComplexityNumeric", "baseScore"]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
@@ -191,15 +142,13 @@ if __name__ == "__main__":
     spark_session = SparkSession.builder.appName("MLTasks").getOrCreate()
 
     method = sys.argv[1]
-    output_directory = "..\\Datasets"
-    csv_file = os.path.join(output_directory, "training_dataset.csv")
+    csv_file = sys.argv[2]
+
     print(f"file: {csv_file}")
     dataFrame = spark_session.read.csv(csv_file, header=True, schema=vmSchema)
     if method == "preprocessing":
         pre_processing(dataFrame)
     elif method == "decisiontree":
        perform_decision_tree_task(dataFrame)
-    elif method == "clustering":
-       perform_clustering(dataFrame)
     elif method == "logisticregression":
        perform_logistic_regression(dataFrame)
