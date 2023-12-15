@@ -66,27 +66,21 @@ def convert_to_pandas(spark_df):
 def perform_decision_tree_task(dataFrame):   
     transformed_df = encode_df(dataFrame)
 
-    # VectorAssembler for feature vector
     feature_columns = ["AttackVectorEncoded", "attackComplexityNumeric", "baseScore"]
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
     df = assembler.transform(transformed_df)
 
-    # Split the data into training and test sets
     train_data, test_data = df.randomSplit([0.8, 0.2], seed=42)
 
-    # Create a Decision Tree model
     dt = DecisionTreeClassifier(featuresCol="features", labelCol="priorityNumeric", maxDepth=5, maxBins=32)
 
-    # Train the model
     dt_model = dt.fit(train_data)
     
     print("Decision Tree Structure:")
     print(dt_model.toDebugString)
     
-    # Make predictions on the test set
     predictions = dt_model.transform(test_data)
 
-    # Evaluate the model
     evaluator = MulticlassClassificationEvaluator(labelCol="priorityNumeric", predictionCol="prediction", metricName="f1")
     f1_score = evaluator.evaluate(predictions)
 
@@ -108,19 +102,14 @@ def perform_logistic_regression(dataFrame):
     assembler = VectorAssembler(inputCols=feature_columns, outputCol="features")
     df = assembler.transform(transformed_df)
 
-    # Train-test split
     train_data, test_data = df.randomSplit([0.8, 0.2], seed=42)
 
-    # Logistic Regression model for multiclass classification
     lr = LogisticRegression(featuresCol="features", labelCol="priorityNumeric", maxIter=10, regParam=0.3, elasticNetParam=0.8, family="multinomial")
 
-    # Pipeline with Logistic Regression
     pipeline_lr = Pipeline(stages=[lr])
 
-    # Train the model
     lr_model = pipeline_lr.fit(train_data)
 
-    # Make predictions on the test set
     predictions = lr_model.transform(test_data)
 
     # Evaluate the model using multiclass classification metrics
