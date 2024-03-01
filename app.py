@@ -5,6 +5,7 @@ import plotly.express as px
 import pandas as pd
 import plotly.graph_objs as go
 app = Dash(__name__)
+server = app.server
 
 mean_df = pd.read_csv('Datasets/mean_df.csv')
 mean_df_base_score_attack_vector = pd.read_csv('Datasets/mean_df_base_score_attack_vector.csv')
@@ -213,5 +214,7 @@ style={'display': 'flex', 'flex-wrap': 'wrap', 'background-color': '#111', 'just
 
 
 
+# if __name__ == '__main__':
+#     app.run(debug=True)
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=False)
