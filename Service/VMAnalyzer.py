@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from pyspark.ml.feature import StringIndexer, OneHotEncoder
 import plotly.express as px
@@ -91,7 +92,7 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred rendering heat map: {str(e)}")  
 
-        def calculate_correlation(self, processed_df, column_display_info):   
+        def calculate_correlation(self, processed_df, column_display_info, isSave = False):   
             try:
                 columns = [info['column_name'] for info in column_display_info]
                 display_names = [info['display_name'] for info in column_display_info]
@@ -107,7 +108,9 @@ class VMAnalyzer():
                 correlation_df.index = display_names
                 print("Correlation matrix:")
                 print(correlation_df)
-
+                if (isSave):
+                     file = os.path.join("Datasets", "correlation.csv")
+                     correlation_df.to_csv(file, index=False)
                 return correlation_df
 
             except Exception as e:
@@ -138,14 +141,16 @@ class VMAnalyzer():
             except Exception as e:
                     print(f"An error occurred rendering scatter plot: {str(e)}")     
 
-        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, options):   
+        def show_correlation_stacked_bar_chart(self, processed_df, column_1, column_2, options, isSave = False):   
             try:
 
                  grouped_df = processed_df.groupBy(column_1, column_2).count()
                  grouped_df.show()
            
                  grouped_pandas_df = grouped_df.toPandas()
-                 
+                 if (isSave):
+                     self.save_file(grouped_df, "Datasets", "base_severity_count_attack_vector.csv")
+                     
                  severity_order = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
                  custom_colors = {
                         "LOW": "green",
@@ -205,10 +210,13 @@ class VMAnalyzer():
             except Exception as e:
                 print(f"An error occurred while calculating mean: {str(e)}")   
 
-        def show_bubble_chart(self, df, column_1, column_2, options):   
+        def show_bubble_chart(self, df, column_1, column_2, options, isSave = False):   
             try:
                  df = df.withColumn(options['color_col'], regexp_replace(df[options['color_col']], '_', ' ')) 
                  df = df.withColumnRenamed(options['color_col'], options['key_label'])
+                 if (isSave):
+                    self.save_file(df, "Datasets", "base_metrics_impact_score_correlation.csv")
+                    
                  fig = px.scatter(
                         df.toPandas(),
                         x= column_1,
@@ -410,3 +418,13 @@ class VMAnalyzer():
 
             except Exception as e:
                     print(f"An error occurred while performing pca analysis: {str(e)}")  
+                    
+                    
+        def save_file(self, df, file_path, file_name, file_type = "CSV"):
+            if (file_type == "CSV"):
+               csv_file = os.path.join(file_path, file_name)
+               df.toPandas().to_csv(csv_file, index=False)
+               
+            if (file_type == "PARQUET"):
+               file = os.path.join(file_path, file_name)
+               df.write.parquet(file)
